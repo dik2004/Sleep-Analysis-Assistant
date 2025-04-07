@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sleep Analysis Assistant</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f0f2f5;
+            --text-color: #333;
+            --light-text: #666;
+            --border-radius: 12px;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            padding: 20px;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .chat-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+        }
+
+        .chat-header h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .chat-messages {
+            height: 500px;
+            overflow-y: auto;
+            padding: 25px;
+            scroll-behavior: smooth;
+        }
+
+        .category-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .category-button {
+            background: rgba(74, 144, 226, 0.1);
+            border: 1px solid rgba(74, 144, 226, 0.3);
+            color: var(--primary-color);
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .category-button:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            align-items: flex-end;
+        }
+
+        .message-content {
+            max-width: 80%;
+            padding: 12px 18px;
+            border-radius: var(--border-radius);
+            line-height: 1.5;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .user .message-content {
+            background: var(--primary-color);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .bot .message-content {
+            background: var(--secondary-color);
+            color: var(--text-color);
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-input {
+            padding: 20px;
+            border-top: 1px solid rgba(0,0,0,0.1);
+            display: flex;
+            gap: 12px;
+            background: white;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #eee;
+            border-radius: var(--border-radius);
+            outline: none;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+
+        button {
+            padding: 12px 24px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        button:hover {
+            background: #357abd;
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .chat-messages {
+                height: 400px;
+            }
+
+            .message-content {
+                max-width: 90%;
+            }
+
+            .chat-header h1 {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Custom Scrollbar */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="chat-container">
+            <div class="chat-header">
+                <h1>Sleep Analysis Assistant</h1>
+                <p>Your personal sleep advisor powered by AI</p>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <div class="message bot">
+                    <div class="message-content">
+                        Hello! I'm your sleep analysis assistant. I can help you with:
+                        <div class="category-buttons">
+                            <button class="category-button" onclick="window.uiHandler.handleCategory('schedule')">Sleep schedules</button>
+                            <button class="category-button" onclick="window.uiHandler.handleCategory('quality')">Sleep quality</button>
+                            <button class="category-button" onclick="window.uiHandler.handleCategory('duration')">Sleep duration</button>
+                            <button class="category-button" onclick="window.uiHandler.handleCategory('environment')">Sleep environment</button>
+                            <button class="category-button" onclick="window.uiHandler.handleCategory('diet')">Diet and sleep</button>
+                            <button class="category-button" onclick="window.uiHandler.handleCategory('exercise')">Exercise and sleep</button>
+                            <button class="category-button" onclick="window.uiHandler.handleCategory('health')">Sleep health</button>
+                            <button class="category-button" onclick="window.uiHandler.handleCategory('tracking')">Sleep tracking</button>
+                        </div>
+                        <p style="margin-top: 15px;">Click a category or type your question below!</p>
+                    </div>
+                </div>
+            </div>
+            <div class="chat-input">
+                <input type="text" id="user-input" placeholder="Type your message here..." autocomplete="off">
+                <button id="send-button">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_CONFIG = {
+            url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+            key: 'AIzaSyDHz9iIv4FxzgAn-A9Wly0v8XVYvVysKog'
+        };
+
+        // Sleep analysis categories
+        const SLEEP_CATEGORIES = {
+            DURATION: 'duration',
+            QUALITY: 'quality',
+            SCHEDULE: 'schedule',
+            ENVIRONMENT: 'environment',
+            HEALTH: 'health',
+            TRACKING: 'tracking',
+            DIET: 'diet',
+            EXERCISE: 'exercise',
+            ROUTINE: 'routine'
+        };
+
+        // Utility functions
+        const utils = {
+            formatMessage: (text) => text.replace(/\n/g, '<br>'),
+            createLoadingMessage: () => {
+                const div = document.createElement('div');
+                div.className = 'message bot';
+                div.innerHTML = '<div class="message-content"><div class="loading"></div>Analyzing your sleep patterns...</div>';
+                return div;
+            },
+            scrollToBottom: (element) => {
+                element.scrollTop = element.scrollHeight;
+            },
+            extractTopic: (message) => {
+                message = message.toLowerCase();
+                if (message.includes('routine') || message.includes('bedtime routine')) return 'routine';
+                if (message.includes('schedule') || message.includes('timing')) return 'schedule';
+                return null;
+            }
+        };
+
+        // Sleep analysis functions
+        const sleepAnalyzer = {
+            async getAIResponse(message) {
+                try {
+                    const response = await fetch(`${API_CONFIG.url}?key=${API_CONFIG.key}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{
+                                    text: `You are a sleep analysis assistant. The user asked: "${message}". 
+                                    Please provide specific, practical advice about sleep. Include:
+                                    1. A clear, concise answer
+                                    2. Scientific backing where relevant
+                                    3. Practical tips or steps
+                                    4. Any relevant warnings or precautions
+                                    Keep the response focused and actionable.
+                                    
+                                    If the question is about routines, focus on specific bedtime routine activities.
+                                    If the question is about schedules, focus on timing and consistency of sleep.`
+                                }]
+                            }]
+                        })
+                    });
+
+                    if (!response.ok) throw new Error('API request failed');
+                    const data = await response.json();
+                    return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+                } catch (error) {
+                    console.error('API Error:', error);
+                    return null;
+                }
+            },
+
+            categorizeQuery(message) {
+                message = message.toLowerCase();
+                
+                // Check for specific routine-related queries first
+                if (message.includes('routine') || message.includes('bedtime routine')) {
+                    return SLEEP_CATEGORIES.ROUTINE;
+                }
+                
+                // Then check other categories
+                if (message.includes('schedule') || message.includes('time') || message.includes('when')) return SLEEP_CATEGORIES.SCHEDULE;
+                if (message.includes('how many') && (message.includes('hours') || message.includes('hrs'))) return SLEEP_CATEGORIES.DURATION;
+                if (message.includes('quality') || message.includes('good sleep') || message.includes('poor sleep')) return SLEEP_CATEGORIES.QUALITY;
+                if (message.includes('environment') || message.includes('room') || message.includes('bed')) return SLEEP_CATEGORIES.ENVIRONMENT;
+                if (message.includes('health') || message.includes('medical') || message.includes('doctor')) return SLEEP_CATEGORIES.HEALTH;
+                if (message.includes('track') || message.includes('monitor') || message.includes('app')) return SLEEP_CATEGORIES.TRACKING;
+                if (message.includes('diet') || message.includes('food') || message.includes('eat') || message.includes('meal')) return SLEEP_CATEGORIES.DIET;
+                if (message.includes('exercise') || message.includes('workout') || message.includes('activity')) return SLEEP_CATEGORIES.EXERCISE;
+                return null;
+            },
+
+            async analyzeSleep(message) {
+                const category = this.categorizeQuery(message);
+                
+                // Try AI response first
+                const aiResponse = await this.getAIResponse(message);
+                if (aiResponse) return { message: aiResponse, category };
+
+                // Fallback responses based on category
+                const responses = {
+                    [SLEEP_CATEGORIES.SCHEDULE]: {
+                        message: "Creating an optimal sleep schedule:\n• Wake up at the same time daily\n• Go to bed at the same time nightly\n• Start winding down 1 hour before bed\n• Avoid screens 30 minutes before bed\n• Keep schedule consistent on weekends\n• Plan for 7-9 hours of sleep",
+                        tips: ["Use an alarm to maintain consistency", "Adjust gradually in 15-minute increments"]
+                    },
+                    [SLEEP_CATEGORIES.ROUTINE]: {
+                        message: "Essential elements of a relaxing bedtime routine:\n• Set a specific bedtime\n• Take a warm bath or shower (1-2 hours before bed)\n• Practice gentle stretching or yoga\n• Do meditation or deep breathing exercises\n• Read a book or listen to calming music\n• Dim the lights to signal bedtime\n• Write in a journal or practice gratitude\n• Use aromatherapy (lavender, chamomile)",
+                        tips: ["Keep the routine under 30-60 minutes", "Do activities in the same order each night", "Avoid stimulating activities"]
+                    },
+                    [SLEEP_CATEGORIES.DURATION]: {
+                        message: "Recommended sleep duration by age:\n• Adults (18-64): 7-9 hours\n• Teens (14-17): 8-10 hours\n• School-age (6-13): 9-11 hours\n• Preschoolers (3-5): 10-13 hours\n• Toddlers (1-2): 11-14 hours\n• Infants (4-11 months): 12-15 hours\n• Newborns (0-3 months): 14-17 hours",
+                        tips: ["Consistency is key - try to maintain the same sleep schedule", "Listen to your body's natural sleep signals"]
+                    },
+                    [SLEEP_CATEGORIES.QUALITY]: {
+                        message: "Signs of good sleep quality:\n• Falling asleep within 30 minutes\n• Sleeping through the night\n• Waking up feeling rested\n• Having energy during the day\n\nTips to improve sleep quality:\n• Create a consistent sleep schedule\n• Keep your bedroom dark and cool\n• Avoid screens before bedtime\n• Exercise regularly\n• Limit caffeine and alcohol\n• Create a relaxing bedtime routine",
+                        tips: ["Try meditation or deep breathing before bed", "Consider using white noise or earplugs if needed"]
+                    },
+                    [SLEEP_CATEGORIES.ENVIRONMENT]: {
+                        message: "Optimal sleep environment:\n• Keep room temperature between 65-68°F (18-20°C)\n• Ensure complete darkness\n• Maintain quiet surroundings\n• Use comfortable bedding\n• Ensure good ventilation\n• Keep electronics out of the bedroom",
+                        tips: ["Consider blackout curtains", "Use a white noise machine if needed"]
+                    },
+                    [SLEEP_CATEGORIES.HEALTH]: {
+                        message: "Sleep and health connection:\n• Poor sleep affects immune system\n• Impacts mental health and mood\n• Affects weight management\n• Influences heart health\n• Affects cognitive function\n• Impacts stress levels",
+                        tips: ["Consult a healthcare provider if sleep problems persist", "Keep a sleep diary to track patterns"]
+                    },
+                    [SLEEP_CATEGORIES.TRACKING]: {
+                        message: "Sleep tracking methods:\n• Sleep diary/journal\n• Sleep tracking apps\n• Wearable devices\n• Smart watches\n• Sleep lab studies\n• Home sleep tests",
+                        tips: ["Start with a simple sleep diary", "Consider using a sleep tracking app"]
+                    },
+                    [SLEEP_CATEGORIES.DIET]: {
+                        message: "Diet's impact on sleep:\n• Avoid large meals 2-3 hours before bed\n• Limit caffeine after 2 PM\n• Avoid alcohol before bedtime\n• Stay hydrated throughout the day\n• Consider sleep-promoting foods:\n  - Tryptophan-rich foods (turkey, milk)\n  - Complex carbs (whole grains)\n  - Magnesium-rich foods (nuts, seeds)\n  - Melatonin-containing foods (cherries)",
+                        tips: ["Have a light snack if hungry before bed", "Avoid spicy or acidic foods at night"]
+                    },
+                    [SLEEP_CATEGORIES.EXERCISE]: {
+                        message: "Exercise and sleep connection:\n• Exercise regularly but not too close to bedtime\n• Best time to exercise: 4-6 hours before bed\n• Morning exercise can improve sleep quality\n• Regular physical activity can:\n  - Reduce time to fall asleep\n  - Improve sleep quality\n  - Increase sleep duration\n  - Reduce daytime sleepiness",
+                        tips: ["Aim for 30 minutes of moderate exercise daily", "Try relaxing exercises like yoga before bed"]
+                    }
+                };
+
+                return responses[category] || {
+                    message: "I can help you with:\n• Sleep schedules\n• Sleep quality\n• Tips for better sleep\n• Sleep duration\n• Sleep environment\n• Diet and sleep\n• Exercise and sleep\n\nWhat would you like to know?",
+                    tips: []
+                };
+            }
+        };
+
+        // UI Handler
+        class UIHandler {
+            constructor() {
+                this.chatMessages = document.getElementById('chat-messages');
+                this.userInput = document.getElementById('user-input');
+                this.sendButton = document.getElementById('send-button');
+                this.setupEventListeners();
+                // Make the instance globally available for button clicks
+                window.uiHandler = this;
+            }
+
+            setupEventListeners() {
+                this.sendButton.addEventListener('click', () => this.handleSend());
+                this.userInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.handleSend();
+                });
+                this.userInput.focus();
+            }
+
+            addMessage(message, isUser = false) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+                messageDiv.innerHTML = `<div class="message-content">${utils.formatMessage(message)}</div>`;
+                this.chatMessages.appendChild(messageDiv);
+                utils.scrollToBottom(this.chatMessages);
+            }
+
+            async handleSend() {
+                const message = this.userInput.value.trim();
+                if (!message) return;
+
+                // Disable input while processing
+                this.userInput.disabled = true;
+                this.sendButton.disabled = true;
+
+                // Add user message
+                this.addMessage(message, true);
+                this.userInput.value = '';
+
+                // Show loading message
+                const loadingDiv = utils.createLoadingMessage();
+                this.chatMessages.appendChild(loadingDiv);
+                utils.scrollToBottom(this.chatMessages);
+
+                // Get and display response
+                const response = await sleepAnalyzer.analyzeSleep(message);
+                loadingDiv.remove();
+
+                this.addMessage(response.message);
+                if (response.tips && response.tips.length > 0) {
+                    this.addMessage("Additional tips:\n" + response.tips.join('\n'));
+                }
+
+                // Re-enable input
+                this.userInput.disabled = false;
+                this.sendButton.disabled = false;
+                this.userInput.focus();
+            }
+
+            async handleCategory(category) {
+                const categoryMessages = {
+                    schedule: "Tell me about sleep schedules",
+                    quality: "How can I improve my sleep quality?",
+                    duration: "How many hours of sleep do I need?",
+                    environment: "What's the best sleep environment?",
+                    diet: "How does diet affect sleep?",
+                    exercise: "How does exercise affect sleep?",
+                    health: "How does sleep affect health?",
+                    tracking: "How can I track my sleep?",
+                    routine: "Create a relaxing bedtime routine"
+                };
+
+                const message = categoryMessages[category] || category;
+                this.userInput.value = message;
+                await this.handleSend();
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            new UIHandler();
+        });
+    </script>
+</body>
+</html> 
